@@ -1,0 +1,46 @@
+html, body {
+	margin: 0;
+	padding: 0;
+}
+
+a {
+	text-decoration: none;
+	color: #2d2d2d;
+}
+
+
+a:hover {
+	color: #1c9bc9;
+	text-decoration: underline;
+}
+
+
+li:hover {
+    cursor: pointer;
+    color: #1c9bc9;
+    text-decoration: underline;
+}
+
+.container {
+	font-family: "Helvetica Neue Bold", Roboto, Helvetica, Arial, sans-serif;
+	color: #2d2d2d;
+}
+
+
+.flash {
+    background-color: #98FB98;
+    width:100%;
+    text-decoration: none;
+
+}
+
+.flash li {
+    list-style-type: none;
+    text-align: center;
+
+}
+
+.signInButton {
+	padding: 30px;
+	text-align: center;
+}

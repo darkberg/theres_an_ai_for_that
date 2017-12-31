@@ -1,0 +1,44 @@
+
+
+<!-- Main entry point for HTML templating -->
+
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" type="text/css" href=" {{ url_for('static', filename='style.css') }}">
+	<link rel="stylesheet" type="text/css" href=" {{ url_for('static', filename='default-smallscreen.css') }}">
+	<link rel="stylesheet" type="text/css" href=" {{ url_for('static', filename='medium-screen.css') }}">
+	<link rel="stylesheet" type="text/css" href=" {{ url_for('static', filename='large-screen.css') }}">
+
+	<title></title>
+
+
+	<script src="https://unpkg.com/vue"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+	<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+
+
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<meta charset="utf-8">
+
+</head>
+<body class="container">
+		
+		<!-- insert navigation -->
+		<!-- important, must pass active_page variable to navigation -->
+
+		{% set active_page = active_page %}
+		{% include "/navigation/navigation.html" %}
+
+		<!-- insert messages -->
+		{% include "/messages/messages.html" %}
+
+		<!-- insert page content -->
+		{% block content %}
+		{% endblock %}
+		<!-- end page content -->
+
+		<!-- #TODO, footer here? -->
+</body>
+</html>

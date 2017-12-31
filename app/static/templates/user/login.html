@@ -1,0 +1,47 @@
+
+{% extends "base.html" %}
+{% set active_page = "TODO" %}
+{% block content %}
+
+{% raw %}
+
+<div id="login" class="panel panel-primary">
+	
+	<div class="panel panel-primary">
+		
+		<div class="panel panel-heading">
+				<h3 class="panel-title"> Login </h3>
+		</div>
+		
+		<div class="panel panel-body">
+			<form method="post">
+				
+				<div class="input-group">
+					<div>
+						<input type="text" class="form-control" placeholder="Email" name="email" v-model="user.email">
+					</div>
+					<div>
+						{{user.error_email}}
+					</div>
+
+					<div>
+						<input type="password" class="form-control" placeholder="Password" name="password" v-model="user.password">
+					</div>
+					<div>
+						{{user.error_password}}
+					</div>
+
+					<div>
+						<input @click="user_login_function" v-on:submit.prevent="onSubmit" type="button" value="Login" class="btn btn-primary">
+					</div>
+				</div>
+			</form>
+		</div>
+	</div>
+</div>
+
+{% endraw %}
+
+<script src="/static/js/user/login.js"></script>
+
+{% endblock %}

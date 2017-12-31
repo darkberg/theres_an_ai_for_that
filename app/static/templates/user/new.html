@@ -1,0 +1,57 @@
+
+{% extends "base.html" %}
+{% set active_page = "TODO" %}
+{% block content %}
+
+{% raw %}
+<div id="new_user" class="panel panel-primary">
+	
+	<div class="panel panel-heading">
+		<h3 class="panel-title"> Signup now </h3>
+	</div>
+
+	<div class="panel-body">
+		<form method="post">
+			<div class="input-group">
+
+				<div>
+					<input type="text" name="email" v-model="user.email" class="form-control" placeholder="Email">
+					<div>
+						{{user.error_email}}
+					</div>
+				</div>
+				
+				<div>
+					<input type="password" name="password" v-model="user.password" class="form-control" placeholder="Password, minimum 3 characters">
+					<div>
+						{{user.error_password}}
+					</div>
+				</div>
+
+				<div>
+					<input type="password" name="verify" v-model="user.verify" class="form-control" placeholder="Verify password">
+					<div>
+						{{user.error_verify}}
+					</div>
+				</div>
+
+                <div>
+                    <input type="password" name="code" v-model="user.code" class="form-control" placeholder="signup code">
+                    <div>
+                        {{user.error_code}}
+                    </div>
+                </div>
+
+			</div> 
+
+			<br>
+			<input @click="user_new_function" v-on:submit.prevent="onSubmit" type="button" value="Signup" class="btn btn-success">
+
+		</form>
+	</div>
+</div>
+{% endraw %}
+
+<script src="/static/js/user/new.js"></script>
+
+{% endblock %}

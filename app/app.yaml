@@ -1,0 +1,33 @@
+runtime: python
+env: flex
+entrypoint: gunicorn -b :$PORT main:app
+
+runtime_config:
+  python_version: 3.5
+
+#[START env]
+env_variables:
+    SQLALCHEMY_DATABASE_URI: >-
+      postgresql+psycopg2://USER_NAME:PASSWORD@/DATABASE_NAME?host=/cloudsql/PROJECT_NAME:REGION:INSTANCE
+
+#[END env]
+
+#[START cloudsql_settings]
+beta_settings:
+    cloud_sql_instances: PROJECT_NAME:REGION:INSTANCE
+
+handlers:
+- url: /static/templates
+  static_dir: static/templates
+- url: /static/js
+  static_dir: static/js
+
+manual_scaling:
+  instances: 1
+
+resources:
+  cpu: 1
+  memory_gb: 1
+  disk_size_gb: 10
+
+#[END cloudsql_settings]

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% set active_page = "workspace" %}
+{% block content %}
+
+{% raw %}
+
+
+<div id="new_project" class="panel panel-primary">
+
+    <div class="panel panel-primary">
+
+        <div class="panel panel-heading">
+            <h3 class="panel-title"> New Project </h3>
+        </div>
+
+        <div class="panel panel-body">
+            <form method="post">
+                <div class="input-group">
+
+                    <div>
+                        <input @click="new_project_function" v-on:submit.prevent="onSubmit" 
+                               type="button" value="Create" class="btn btn-primary">
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+{% endraw %}
+
+<script src="/static/js/workspace/newWorkspace.js"></script>
+{% endblock %}

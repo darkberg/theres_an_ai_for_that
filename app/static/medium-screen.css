@@ -1,0 +1,68 @@
+@media screen and (min-width: 768px) {
+
+/* Header section */
+.header {
+	display: flex; /* IMPORTANT */
+}
+	.logo {
+		width: 20%;
+	}
+	.logo img {
+		width: 120px;
+	}
+	.title {
+		width: 80%;
+		font-size: 1.2em;
+		text-align: left;
+	}
+	.title h1, h3 {
+		margin: 0;
+		padding-top: 10px;
+	}
+/* Header section */
+
+
+/* Gallery section */
+.gallery {
+	display: flex; /* IMPORTANT */
+	text-align: center;
+}
+	.gallery-item {
+		width: 33%;
+		padding-bottom: 30px;
+	}
+	.gallery-item img {
+		width: 60%;
+		padding-bottom: 15px;
+	}
+	.gallery-item p {
+		margin: 0;
+		padding-top: 0px;
+		padding-bottom: 5px;
+	}
+
+/* Not grouped with .gallery due to flexbox */
+.gallery-title {
+	text-align: center;
+	padding: 25px;
+}
+/* Gallery section */
+
+.job-item {
+	width: 33%;
+	padding: 15px;
+}
+
+
+.navigation {
+    justify-content: space-around;
+    /* change to horizontal menu */
+    -webkit-flex-flow: row wrap;
+}
+
+.navigation a {
+  display: block;
+}
+
+/* end media query */
+}

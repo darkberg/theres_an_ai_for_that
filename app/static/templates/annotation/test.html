@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% set active_page = "test" %}
+{% block content %}
+{% raw %}
+
+
+<div id="test">
+
+
+    <p> </p>
+    <button type="" @click="runSingleInference"> runSingleInference </button>
+
+    <img v-for="image in Images"  @click=""
+         :src="image.public_url">
+
+</div>
+
+<p>
+    Test first test image found. Please reload page after 40 seconds to see image.
+</p>
+<p> 
+    Or request a dedicated node for faster results
+</p>
+
+{% endraw %}
+
+
+
+
+
+
+<script src="/static/js/annotation/test.js"></script>
+{% endblock %}

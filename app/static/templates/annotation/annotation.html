@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% set active_page = "annotate" %}
+{% block content %}
+
+<style type="text/css" media="screen">
+
+	img {
+		user-drag: none; 
+		user-select: none;
+		-moz-user-select: none;
+		-webkit-user-drag: none;
+		-webkit-user-select: none;
+		-ms-user-select: none;
+	}
+
+</style>
+
+{% raw %}
+
+
+
+<div id="userbase">
+   {{user_email}} 
+</div>
+
+
+<div id="version_id" style="overflow:auto ">
+
+    <!-- TODO add thumbnail on hover :src="image.public_url_thumb"-->
+   Train_length: {{train_length}}  Test_length: {{test_length}}
+
+</div>
+
+<div style="width:500px ">
+
+</div>
+
+<div id="images" style="overflow:auto; height:300px ">
+
+    <!-- TODO add thumbnail on hover :src="image.public_url_thumb"-->
+    <p> Images</p>
+    <div>
+        <input type="text" name="image_search" v-model="search_term" placeholder="Search filename">
+        <input @click="get_images" v-on:submit.prevent="onSubmit" type="button" value="Search" class="btn btn-success">
+    </div>
+
+    <ol>
+        <div v-for="image in Images">
+                <li style="font-size: 1.4em;" v-if="image.original_filename == current_image.original_filename" id="b" @click="change_image(image)">
+
+                    <img :src=image.public_url_thumb width=25 height=25 />
+                    {{image.original_filename}} {{image.done_labeling}}
+
+                </li>
+                <div v-else>
+                    <li id="c" @click="change_image(image)">
+
+                        <img :src=image.public_url_thumb width=25 height=25 />
+                        {{image.original_filename}} {{image.done_labeling}}
+
+                        <!--<button type="" @click=""> Delete </button> -->
+                    </li>
+                </div>
+        </div>
+     </ol>
+
+
+</div>
+
+
+<div id="labels"  style="overflow:auto; height:300px ">
+
+    <p> Labels </p>
+    <div>
+        <input type="text" name="new_label" v-model="new_label.name" placeholder="New label">
+        <input @click="new_label_function" v-on:submit.prevent="onSubmit" type="button" value="Create label" class="btn btn-success">
+    </div>
+
+    <div v-for="label in Labels">
+        <ul>
+            <li style="font-size: 1.4em;" v-if="label.is_active == true" id="labels_z" @click="change_label_function(label)">
+                {{label.name}}
+                <button type="" @click="delete_label_function(label)"> Delete </button>
+            </li>
+            <div v-else>
+                <li id="labels_z" @click="change_label_function(label)">
+                    {{label.name}}
+                    <button type="" @click="delete_label_function(label)"> Delete </button>
+                </li>
+                </div>
+ 
+        </ul>
+    </div>
+
+</div>
+
+<div style="padding: 30">
+
+    <div id="annotate">
+        <!-- <p> {{target}} </p> -->
+
+        <p>
+            {{current_image.original_filename}}
+            <div v-if="editing"> Mode: Editing </div>
+            <div v-else> Mode: Drawing </div>
+            Box functions - Must click save before changing images. Left / right arrows work
+            <button type="" @click="save"> Save boxes (s key) </button>
+            <button @click="toggle_edit_button" type="">Edit boxes (Esc key)</button>
+            <button @click="delete_button" type="">Delete selected box (Delete key)</button>
+            <!-- <button @click="toggle_done_labeling(current_image)" type=""> Done labeling</button> -->
+            <button @click="toggle_done_labeling_all" type=""> Done labeling open images</button>
+            <!-- <button @click="toggle_resize_button" type="">Resize (r)</button> -->
+            <button @click="remove_duplicate_filenames" type=""> remove_duplicate_filenames</button>
+        </p>
+
+
+
+
+        <canvas id="annotate_canvas"
+                @mousedown="mouse_down"
+                @mousemove="mouse_move"
+                @mouseup="mouse_up"
+                :width="current_image.width" :height="current_image.height"></canvas>
+
+
+        <div v-for="b in boxes">
+            {{ b.label.name }}  Width: {{ b.width }} Height: {{b.height }}
+        </div>
+
+        <p>
+
+            <button type="" @click="imageDelete(current_image)"> Delete current image </button>
+            <div v-if="current_image.is_test_image == true">
+                <button type="" @click="toggleTestImage(current_image)"> Change to Train image</button>
+                <h2> Type: Test </h2>
+            </div>
+            <div v-if="current_image.is_test_image != true">
+                <button type="" @click="toggleTestImage(current_image)"> Change to Test image </button>
+                Type: Train 
+            </div>
+            <button type="" @click="toggleTestImageAll()"> Toggle all images test/Train </button>
+    </p>
+  
+
+    <img id="a" style="visibility: hidden" width=1 height=1 :src=" current_image.public_url ">
+
+
+        <p>
+
+            Training functions.
+            Temporary instructions for prototype:
+            <ol>
+                <li> Select (or add new) labels </li>
+                <li> Draw boxes - </li>
+                <li> Click done labeling open images </li>
+                <li> Once you have all images annotated click Train & deploy (Once!)</li>
+            </ol>
+
+            <ul>
+
+                <li> Training pipeline takes about 60 minutes. </li>
+                <li> After, the first image marked as test will be available for viewing on Test tab</li>
+                <li> Training monitoring / options coming</li>
+            </ul>
+            <button type="" @click="runTrainingPipeline"> Train & deploy </button>
+
+        </p>
+
+{% endraw %}
+
+</div>
+</div>
+
+
+<script src="/static/js/annotation/annotation.js"></script>
+
+{% endblock %}

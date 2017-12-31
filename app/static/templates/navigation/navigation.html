@@ -1,0 +1,38 @@
+
+<!-- Public nav -->
+{% if not session['user_id'] %}
+	{% set navigation_bar = [
+		    ('/', 'home', 'Home'),
+		    ('/user/new', 'signup', 'Signup'),
+		    ('/user/login', 'login', 'Login'),
+			] -%}
+		{% set active_page = active_page|default('home') -%}
+
+<!-- Private nav -->
+{% else %}
+		{% set navigation_bar = [
+		    ('/', 'home', 'Home'),
+            ('/a', 'annotate', 'Annotate'),
+            ('/test', 'test', 'Test'),
+            ('/upload', 'upload', 'Upload'),
+		    ('/user/logout', 'logout', 'Logout'),
+			] -%}
+		{% set active_page = active_page|default('home') -%}
+{% endif %}
+
+<ul class="navigation">
+	{% for href, id, caption in navigation_bar %}
+		  <li 
+
+		  	{% if id == active_page %} 
+		  		class="navigation-active" 
+		  	{% endif %}>
+
+		  	<a href="{{ href|e }}">
+		  		{{ caption|e }}
+		  	</a>
+
+		  </li>
+	{% endfor %}
+</ul>
+<!-- end navigation -->
