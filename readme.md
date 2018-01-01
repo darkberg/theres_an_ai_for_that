@@ -3,8 +3,8 @@
 
 ### This is a tiny collection of web based tools for computer vision data preparation and deep learning based object detection built on top of [tensorflow object detection](https://github.com/tensorflow/models/tree/master/research/object_detection).
 
-* Basic multi user annotation
-* Integrated data prep tools (ie creating tfrecords)
+* Basic database backed multi user annotation
+* Integrated data preparation tools (ie creating tfrecords)
 * Optional cloud machine learning training manager
 
 ### Use cases?
@@ -21,6 +21,18 @@
 * Database is PSQL with [SQL Alchemy](https://www.sqlalchemy.org/)
 * Core web app is [flask](http://flask.pocoo.org/)
 
+## Examples
+1. spacex trained example
+	* [video](https://youtu.be/ekl87JspBJs)
+	* [tf_events](https://storage.googleapis.com/object-demo-bucket/example_models/spacex/events.out.tfevents)
+	* [model](https://storage.googleapis.com/object-demo-bucket/example_models/spacex/model.ckpt-3000.data-00000-of-00001)
+	* [frozen model](https://storage.googleapis.com/object-demo-bucket/example_models/spacex/frozen_inference_graph.pb)
+2. Silly walks
+	* [video](https://youtu.be/RBotOlreHxE)
+
+## Usage
+See [app_user_guide.md](app_user_guide.md)
+
 
 ## Setup instructions
 
@@ -29,6 +41,18 @@ These instructions are specific to Google's cloud implementation. With various m
 
 ### Warning
 This is a *prototype* system with known bugs. Use at your own risk.
+
+### File structure
+* root
+	* app
+		* helpers/ (backend logic)
+		* methods/ (backend logic)
+		* settings/
+		* static/ (JS / HTML / CSS)
+		* main.py (Main entry)
+		* database_setup.py (PSQL classes)
+	* examples
+	* local files
 
 
 ### Quick start instructions
@@ -88,28 +112,18 @@ an app engine service account to come up**
 	* database scheme is `project:zone:instance`
 
 
-# Offline usage
-1. **Download YAML files from cloud storage**
-2. **Use as you wish**
+### Offline usage
+1. **Download YAML files from cloud storage and use as you wish
 	* For example, update paths in local_files/create_tf_records_local.py and run
 	* Download config file, modify as needed
-	* Then run training locally
-	* OR simply use annotations with custom setup
+	* Then run training locally using tensorflow object detection API
+	* Or use annotations with custom setup
 3. **For video / prediction**
 	* If using object detection API, download model file
 	* Then create frozen weights (By default online system creates frozen weights in different format  than is preferred by local system)
 	* Update paths and run predict.py
 	* Run images to video if you wish
 
-
-### Examples
-1. spacex trained example
-	* [video](https://youtu.be/ekl87JspBJs)
-	* [tf_events](https://storage.googleapis.com/object-demo-bucket/example_models/spacex/events.out.tfevents)
-	* [model](https://storage.googleapis.com/object-demo-bucket/example_models/spacex/model.ckpt-3000.data-00000-of-00001)
-	* [frozen model](https://storage.googleapis.com/object-demo-bucket/example_models/spacex/frozen_inference_graph.pb)
-2. Silly walks
-	* [video](https://youtu.be/RBotOlreHxE)
 
 
 ### Contributions welcome, for example:
@@ -121,6 +135,7 @@ an app engine service account to come up**
 * UI work (vue js)
 * Display status of training from pub/sub
 * More training options, ability to tune hyper parameters from UI
+
 
 
 
