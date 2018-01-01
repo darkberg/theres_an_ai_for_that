@@ -7,7 +7,7 @@
 
 
 1. **Upload images**
-![Upload](examples\app_user_guide_images\upload_0.png)
+![Upload](./examples/app_user_guide_images/upload_0.png)
 	* If `number_images > 5` suggest using zip file
 	* Max of ~32 mb per zip file
 	* Can upload multiple zip files
@@ -27,7 +27,7 @@
 	* Whichever label is selected is the one that will annotate with
 
 3. **Annotate**
-![annotate_0](examples\app_user_guide_images\annotate_0.png)
+![annotate_0](./examples/app_user_guide_images/annotate_0.png)
 	* Drawing mode (Default)
 		* Hold down left mouse button to start drawing 
 		* Release left mouse button to stop drawing
@@ -54,7 +54,7 @@
 	* Bugs
 		* Must move mouse to show box selected in edit mode
 		* On large images canvas is a bit buggy
-![annotate_1](examples\app_user_guide_images\annotate_1.png)
+![annotate_1](./examples/app_user_guide_images/annotate_1.png)
 		
 4. **Done labelling open images**
 	1. Basic: If you have a small number of images simply click this once and ignore advanced instructions.
@@ -67,15 +67,15 @@
 
 5. **Run training pipeline**
 	1. Suggest having at least 10 images per class, ideally 100
-![pipeline_example](examples\app_user_guide_images\pipeline_example.png)
+![pipeline_example](./examples/app_user_guide_images/pipeline_example.png)
 
 
 6. **Download trained model and/or view single image on test page**
 	1. project / version / ml / ml_version / train
-![test_image](examples\app_user_guide_images\test.png)
-![file_structure_0](examples\app_user_guide_images\file_structure_0.png)
-![file_structure_1](examples\app_user_guide_images\file_structure_1.png)
-![file_structure_2](examples\app_user_guide_images\file_structure_2.png)
+![test_image](./examples/app_user_guide_images/test.png)
+![file_structure_0](./examples/app_user_guide_images/file_structure_0.png)
+![file_structure_1](./examples/app_user_guide_images/file_structure_1.png)
+![file_structure_2](./examples/app_user_guide_images/file_structure_2.png)
 
 
 
