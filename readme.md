@@ -30,14 +30,6 @@ These instructions are specific to Google's cloud implementation. With various m
 ### Warning
 This is a *prototype* system with known bugs. Use at your own risk.
 
-### Contributions welcome, for example:
-* Polygon capture and ground truth creation for semantic segmentation
-* Add other object detection configurations
-* More functions around projects and adding users to the same project
-* Better error handling
-* Test cases and test coverage
-* UI work (vue js)
-
 
 ### Quick start instructions
 0. **Download code.**
@@ -111,16 +103,24 @@ an app engine service account to come up**
 
 
 ### Examples
-spacex trained example
+1. spacex trained example
 	* [video](https://youtu.be/ekl87JspBJs)
 	* [tf_events](https://storage.googleapis.com/object-demo-bucket/example_models/spacex/events.out.tfevents)
 	* [model](https://storage.googleapis.com/object-demo-bucket/example_models/spacex/model.ckpt-3000.data-00000-of-00001)
 	* [frozen model](https://storage.googleapis.com/object-demo-bucket/example_models/spacex/frozen_inference_graph.pb)
+2. Silly walks
+	* [video](https://youtu.be/RBotOlreHxE)
 
-### To dos
-* Display status of training from publisher
+
+### Contributions welcome, for example:
+* Polygon capture and ground truth creation for semantic segmentation
+* Add other object detection configurations
+* More functions around projects and adding users to the same project
+* Better error handling
+* Test cases and test coverage
+* UI work (vue js)
+* Display status of training from pub/sub
 * More training options, ability to tune hyper parameters from UI
-
 
 
 
