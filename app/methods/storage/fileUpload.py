@@ -127,6 +127,9 @@ def uploadPOST():
                     filenames = sorted(os.listdir(temp_dir))
                     len_filenames = len(filenames)  # Variable used in loop below so storing here
                     print("[ZIP processor] Found", len_filenames, file=sys.stderr)
+                    version.train_length += len_filenames
+                    session.add(version)
+                    session.commit()
 
                     Thread_session = sessionMaker.scoppedSession()  # Threadsafe
 
@@ -153,17 +156,14 @@ def uploadPOST():
             else:
                 content_type = "image/" + str(extension)
                 file_name = os.path.split(file.name)[1]
-                
+                version.train_length += 1
+                session.add(version)
+                session.commit()
+
                 out = process_one_image_file(file=file, name=file_name, 
                                     content_type=content_type, extension=extension, 
                                     session=session, project=project, version=version)
-                counter += 1
-        
-        version.train_length += counter
-        session.add(version)
-        session.commit()
-        # Don't close the session here, as this thread may finish before threads processing images 
-        # and that will cause issues. Probably a more sophisticated way this could be done but this works for now
+
 
         out = {"files": [{"name": "Processed files"}]}
         print(out, file=sys.stderr)
