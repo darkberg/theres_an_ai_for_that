@@ -9,19 +9,17 @@ from methods import routes
 from methods.machine_learning import ml_settings
 from settings import settings
 
-session = sessionMaker.newSession()
-
 
 def get_secure_link(blob):
-    
     expiration_time = int(time.time() + 60) 
     return blob.generate_signed_url(expiration=expiration_time)
 
 
 @routes.route('/labels/machine_learning/label_map/new', methods=['GET'])
 def labelMapNew():
-
-    if LoggedIn() == True:
+    def label_map_new_scope(session):
+        if LoggedIn() != True:
+            return defaultRedirect()
 
         project = get_current_project(session)
         version = get_current_version(session)
@@ -83,81 +81,84 @@ def labelMapNew():
 
         return out, 200, {'ContentType':'application/json'}
 
-    else:
-        flash("Please login")
+    with sessionMaker.session_scope() as session:
+        return label_map_new_scope(session)
 
 
 
 @routes.route('/labels/new', methods=['POST'])
 def labelNew():
+    def label_new_scope(session):
+        if LoggedIn() != True:
+            return defaultRedirect()
 
-	if LoggedIn() == True:
+        data = request.get_json(force=True)   # Force = true if not set as application/json' 
+        label = data['label']
+        print(label, data.keys(), file=sys.stderr)
 
-		data = request.get_json(force=True)   # Force = true if not set as application/json' 
-		label = data['label']
-		print(label, data.keys(), file=sys.stderr)
+        have_error = False
+        params = {}
+        #existing_label = session.query(Label).filter_by(id=label['id']).first()
+        existing_label = None  # Maybe do more with this later
 
-		have_error = False
-		params = {}
-		#existing_label = session.query(Label).filter_by(id=label['id']).first()
-		existing_label = None  # Maybe do more with this later
+        project = get_current_project(session)
 
-		project = get_current_project(session)
+        if label is None:
+            params['error'] = "No Label"
+            have_error = True
 
-		if label is None:
-			params['error'] = "No Label"
-			have_error = True
+        if existing_label is not None:
+            params['error'] = "Existing label"
+            have_error = True
 
-		if existing_label is not None:
-			params['error'] = "Existing label"
-			have_error = True
-		
-		if have_error:
-			return json.dumps(params), 200, {'ContentType':'application/json'}
-		else:
-			label['colour'] = "blue" # since JS is being strange
-			new_label = Label(
-				name = label['name'],
-				colour = label['colour'],
-				project_id = project.id)
-			session.add(new_label)
-			session.commit()
+        if have_error:
+            return json.dumps(params), 200, {'ContentType':'application/json'}
+        else:
+            label['colour'] = "blue" # since JS is being strange
+            new_label = Label(
+	            name = label['name'],
+	            colour = label['colour'],
+	            project_id = project.id)
+            session.add(new_label)
 
-			return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
-	
-		# need an else statement here
+            return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
+    
+    with sessionMaker.session_scope() as session:
+        return label_new_scope(session)
 
 
 @routes.route('/labels/json', methods=['GET'])
 def labelRefresh():
+    def label_refresh_scope(session):
+        if LoggedIn() != True:
+            return defaultRedirect()
 
-	if LoggedIn() == True:
+        project = get_current_project(session)
+        Labels_db = session.query(Label).filter_by(project_id=project.id).order_by(Label.id.desc())
+        # TODO can do soft_delete != "True" check in here???
 
-		project = get_current_project(session)
-		Labels_db = session.query(Label).filter_by(project_id=project.id).order_by(Label.id.desc())
-		# TODO can do soft_delete != "True" check in here???
+        Labels = []
+        for i in Labels_db:
+            if i.soft_delete != True:
+                Labels.append(i)
 
-		Labels = []
-		for i in Labels_db:
-			if i.soft_delete != True:
-				Labels.append(i)
+        out = {}
+        out['ids'] = [i.id for i in Labels]
+        out['names'] = [i.name for i in Labels]
+        #Colour?
 
-		out = {}
-		out['ids'] = [i.id for i in Labels]
-		out['names'] = [i.name for i in Labels]
-		#Colour?
+        return json.dumps(out), 200, {'ContentType':'application/json'}
 
-		return json.dumps(out), 200, {'ContentType':'application/json'}
-
-	else:
-		flash("Please login")
+    with sessionMaker.session_scope() as session:
+        return label_refresh_scope(session)
 
 
 
 @routes.route('/labels/delete', methods=['POST'])
 def labelDelete():
-
-    if LoggedIn() == True:
+    def label_delete_scope(session):
+        if LoggedIn() != True:
+            return defaultRedirect()
 
         data = request.get_json(force=True)   # Force = true if not set as application/json' 
         label = data['label']
@@ -175,12 +176,12 @@ def labelDelete():
 
         return json.dumps(out), 200, {'ContentType':'application/json'}
 
-    else:
-        flash("Please login")
+    with sessionMaker.session_scope() as session:
+        return label_delete_scope(session)
 
 
 
-def categoryMap():
+def categoryMap(session):
 
     project = get_current_project(session=session)
     version = get_current_version(session=session)

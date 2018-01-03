@@ -14,57 +14,57 @@ from helpers import sessionMaker
 from . import hashing_functions
 from helpers.permissions import setSecureCookie
 
-session = sessionMaker.newSession()
 
 @routes.route('/user/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'GET':
        return render_template('/user/login.html')
-
+    
     if request.method == 'POST':
+        def login_scope(session):
+            data = request.get_json(force=True)   # Force = true if not set as application/json' 
+            user = data['user']
+    
+            have_error = False
+            params = {}
 
-        data = request.get_json(force=True)   # Force = true if not set as application/json' 
-        user = data['user']
-
-        have_error = False
-        params = {}
-
-        if user['email'] is None:
-            params['error_email'] = "Invalid email"
-            have_error = True
-
-        if user['password'] is None:
-            params['error_password'] = "Invalid password"
-            have_error = True
-
-        if user['email'] is not None:
-
-            user_email = user['email'].lower()
-
-            user_db = session.query(User).filter_by(email=user_email).first()
-
-            if user_db is None:
+            if user['email'] is None:
                 params['error_email'] = "Invalid email"
                 have_error = True
-                # Could add other @ checking to avoid db call if needed
 
-            if user_db is not None and have_error is False:
-                        
-                password_result = hashing_functions.valid_pw(user_email, 
-		                user['password'], user_db.password_hash)
+            if user['password'] is None:
+                params['error_password'] = "Invalid password"
+                have_error = True
 
-                if password_result is False:
-                    params['error_password'] = "Invalid password"
+            if user['email'] is not None:
+
+                user_email = user['email'].lower()
+
+                user_db = session.query(User).filter_by(email=user_email).first()
+
+                if user_db is None:
+                    params['error_email'] = "Invalid email"
                     have_error = True
+                    # Could add other @ checking to avoid db call if needed
 
+                if user_db is not None and have_error is False:
+                        
+                    password_result = hashing_functions.valid_pw(user_email, 
+		                    user['password'], user_db.password_hash)
 
-        if have_error:
-            return json.dumps(params), 200, {'ContentType':'application/json'}
+                    if password_result is False:
+                        params['error_password'] = "Invalid password"
+                        have_error = True
 
-        else: 
+            if have_error:
+                return json.dumps(params), 200, {'ContentType':'application/json'}
 
-            setSecureCookie(user_db)
+            else: 
 
-            return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
+                setSecureCookie(user_db)
+                return json.dumps({'success':True}), 200, {'ContentType':'application/json'}
 
+        with sessionMaker.session_scope() as session:
+            return login_scope(session)
 
+    

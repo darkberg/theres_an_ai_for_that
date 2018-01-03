@@ -7,7 +7,7 @@ import sys
 import re
 import json
 from helpers import sessionMaker
-from helpers.permissions import LoggedIn, defaultRedirect, getUserID
+from helpers.permissions import LoggedIn, defaultRedirect, getUserID, get_current_project
 
 
 @routes.route('/workspace/new', methods=['GET'])
@@ -18,41 +18,32 @@ def project_get():
         return defaultRedirect()
 
 
-@routes.route('/project/new', methods=['POST'])
-def project_new():
-        
-    session = sessionMaker.newSession()
-
-    user_id = getUserID()
-    if user_id is None:
-        return defaultRedirect()
+def project_new(session):
 
     train_credits = 3
     test_credits = 3
 
     new_project = Project(train_credits=train_credits,
-                            test_credits=test_credits
-                            )
+                            test_credits=test_credits)
     session.add(new_project)
-    session.commit()
+    session.commit()  # May be better way to use a session scope here
+    user = session.query(User).filter_by(id=getUserID()).first()
+    user.project_id_current = new_project.id
+    session.add(user)
 
-    new_version = Version(project_id=new_project.id)
+
+
+def version_new(session):
+    
+    project = get_current_project(session)
+    new_version = Version(project_id=project.id)
     session.add(new_version)
     session.commit()
 
-    new_project.version_id_current = new_version.id
-    new_project.version_ids = [new_version.id]
+    project.version_id_current = new_version.id
+    project.version_ids = [new_version.id]
+    session.add(project)
             
-    user = session.query(User).filter_by(id=getUserID()).first()
 
-    user.project_id_current = new_project.id
 
-    session.add(new_project, user)
-    session.commit()
 
-    print("New project created, new_project.id", new_project.id, 
-            "new_version.id", new_version.id, "user.id", user.id, file=sys.stderr)
-
-    flash("Project created, on default version")
-
-    return json.dumps({'success':True}), 200, {'ContentType':'application/json'}

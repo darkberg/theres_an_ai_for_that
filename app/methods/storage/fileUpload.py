@@ -28,14 +28,14 @@ def upload():
 allowed_file_names = [".jpg", ".jpeg", ".png", ".zip"]
 
 
-def process_one_image_file(file, name, content_type, session, extension, project, version):
+def process_one_image_file(file, name, content_type, session, extension, project_id, version_id):
     
-    new_image = Image(version_id=version.id, 
+    new_image = Image(version_id=version_id, 
                     original_filename=name)
     session.add(new_image)
     session.commit()
 
-    base_dir = str(project.id)+"/"+str(version.id)+"/" + "images/"+ str(new_image.id)
+    base_dir = str(project_id)+"/"+str(version_id)+"/" + "images/"+ str(new_image.id)
     blob = bucket.blob(base_dir)
 
     blob.upload_from_string(file.read(),
@@ -77,13 +77,12 @@ def process_one_image_file(file, name, content_type, session, extension, project
     new_image.url_signed_thumb = url_signed_thumb
     new_image.url_signed_expiry = expiration_time
 
-    session.commit()
-    session.close()
+    session.add(new_image)
 
-    return {"files": [{"name": "Success. Please allow time for images to be processed."}]}
+    return {"files": [{"name": "Success"}]}
 
 
-def multi_thread_task_manager(temp_dir, filename, Thread_session, project, version):
+def multi_thread_task_manager(temp_dir, filename, Thread_session, project_id, version_id):
     with open(temp_dir + "/" + filename, "rb") as file: 
         if not file:
             print("No file loaded from zip", file=sys.stderr)
@@ -92,11 +91,10 @@ def multi_thread_task_manager(temp_dir, filename, Thread_session, project, versi
         if extension in allowed_file_names:
             content_type = "image/" + str(extension)
 
-            thread_session = Thread_session()
-            process_one_image_file(file=file, name=filename, content_type=content_type, 
-                    session=thread_session, extension=extension, project=project, version=version)
+            with sessionMaker.session_scope_threaded(Thread_session) as thread_session:
+                process_one_image_file(file=file, name=filename, content_type=content_type, 
+                        session=thread_session, extension=extension, project_id=project_id, version_id=version_id)
 
-            Thread_session.remove()
             thread = threading.current_thread()
             thread.cancel()
 
@@ -109,65 +107,73 @@ def uploadPOST():
  
     @copy_current_request_context
     def task_manager(name, extension):  # Function is defined here to so as to use request context decorator with scopped session.
+        def task_manager_scope(session):
+            counter = 0
+            project = get_current_project(session)
+            version = get_current_version(session)
+            project_id = project.id
+            version_id = version.id
+            out = ""
+            with open(name, "rb") as file:              
+                if extension == ".zip":
+                    try:                        
+                        zip_ref = zipfile.ZipFile(BytesIO(file.read()), 'r')
+                        temp_dir = tempfile.mkdtemp()
+                        zip_ref.extractall(temp_dir)
+                        zip_ref.close()
 
-        session = sessionMaker.newSession()
-        project = get_current_project(session)
-        version = get_current_version(session)
-        counter = 0
+                        filenames = sorted(os.listdir(temp_dir))
+                        len_filenames = len(filenames)  # Variable used in loop below so storing here
+                        print("[ZIP processor] Found", len_filenames, file=sys.stderr)
 
-        out = ""
-        with open(name, "rb") as file:              
-            if extension == ".zip":
-                try:                        
-                    zip_ref = zipfile.ZipFile(BytesIO(file.read()), 'r')
-                    temp_dir = tempfile.mkdtemp()
-                    zip_ref.extractall(temp_dir)
-                    zip_ref.close()
+                        Thread_session = sessionMaker.scoppedSession()  # Threadsafe
 
-                    filenames = sorted(os.listdir(temp_dir))
-                    len_filenames = len(filenames)  # Variable used in loop below so storing here
-                    print("[ZIP processor] Found", len_filenames, file=sys.stderr)
-                    version.train_length += len_filenames
-                    session.add(version)
-                    session.commit()
+                        for filename in filenames:
 
-                    Thread_session = sessionMaker.scoppedSession()  # Threadsafe
+                            t_2 = threading.Timer(0, multi_thread_task_manager, 
+                                                args=(temp_dir, filename, Thread_session,
+                                                      project_id, version_id))
+                            t_2.start()
 
-                    for filename in filenames:
+                            # Slow down new threads if too many open
+                            len_threads = len(threading.enumerate())
+                            if len_threads > settings.MAX_UPLOAD_THREADS:
+                                time.sleep(settings.MAX_UPLOAD_THREADS * 25)          
+                            if len_threads > settings.TARGET_UPLOAD_THREADS:
+                                time.sleep(settings.TARGET_UPLOAD_THREADS * 5)
 
-                        t_2 = threading.Timer(0, multi_thread_task_manager, 
-                                            args=(temp_dir, filename, Thread_session, project, version))
-                        t_2.start()
+                            counter += 1
+                            if counter % 10 == 0:
+                                print("[ZIP processor]", (counter / len(filenames) ) * 100, "% done." , file=sys.stderr)
 
-                        # Slow down new threads if too many open
-                        len_threads = len(threading.enumerate())
-                        if len_threads > settings.MAX_UPLOAD_THREADS:
-                            time.sleep(settings.MAX_UPLOAD_THREADS * 25)          
-                        if len_threads > settings.TARGET_UPLOAD_THREADS:
-                            time.sleep(settings.TARGET_UPLOAD_THREADS * 5)
+                        Thread_session.remove()
 
-                        counter += 1
-                        if counter % 10 == 0:
-                            print("[ZIP processor]", (counter / len(filenames) ) * 100, "% done." , file=sys.stderr)
-
-                except zipfile.BadZipFile:
-                    out = {"files": [{"name": "Error bad zip file"}]}
+                    except zipfile.BadZipFile:
+                        out = {"files": [{"name": "Error bad zip file"}]}
         
-            else:
-                content_type = "image/" + str(extension)
-                file_name = os.path.split(file.name)[1]
-                version.train_length += 1
-                session.add(version)
-                session.commit()
+                else:
+                    content_type = "image/" + str(extension)
+                    file_name = os.path.split(file.name)[1]
 
-                out = process_one_image_file(file=file, name=file_name, 
-                                    content_type=content_type, extension=extension, 
-                                    session=session, project=project, version=version)
+                    out = process_one_image_file(file=file, name=file_name, 
+                                        content_type=content_type, extension=extension, 
+                                        session=session, project_id=project_id, version_id=version_id)
 
+            out = {"files": [{"name": "Processed files"}]}
+            print(out, file=sys.stderr)
+            t.cancel()
 
-        out = {"files": [{"name": "Processed files"}]}
-        print(out, file=sys.stderr)
-        t.cancel()
+        with sessionMaker.session_scope() as session:
+            task_manager_scope(session)
+
+        # Update train counts
+        with sessionMaker.session_scope() as session:
+            time.sleep(1)
+            version = get_current_version(session)
+            image_count = session.query(Image).filter_by(version_id=version.id).filter(Image.is_test_image == False, Image.soft_delete == False).count()
+            version.train_length = image_count
+            session.add(version)
+
 
 
     file = request.files.get('files[]')

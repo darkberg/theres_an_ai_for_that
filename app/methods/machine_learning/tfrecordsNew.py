@@ -13,9 +13,6 @@ from methods.utils import dataset_util
 from settings import settings
 
 
-session = sessionMaker.newSession()
-
-
 def get_secure_link(blob):
     
     expiration_time = int(time.time() + 60) 
@@ -24,7 +21,6 @@ def get_secure_link(blob):
 
 def create_tf_example(example, Labels_dict):
     
-
     height =  example[0]['image']['image_height']
     width =  example[0]['image']['image_width']
     image_id = example[0]['image']['image_id']
@@ -84,80 +80,78 @@ def tfrecordsNew(hold_thread=False):
 
     @copy_current_request_context
     def task_manager():
+        def task_manager_scope(session):
+            project = get_current_project(session)
+            version = get_current_version(session)
+            ml_settings = get_ml_settings(session=session, version=version)
 
-        project = get_current_project(session)
-        version = get_current_version(session)
-        ml_settings = get_ml_settings(session=session, version=version)
+            project_str = str(project.id)+"/"+str(version.id)+"/"
 
-        project_str = str(project.id)+"/"+str(version.id)+"/"
+            gcs = storage.Client()
+            gcs = get_gcs_service_account(gcs)
+            bucket = gcs.get_bucket(settings.CLOUD_STORAGE_BUCKET)
+            blob = bucket.blob(project_str + "ml/" + str(ml_settings.ml_compute_engine_id) + "/tfrecords_0.record")
+            INPUT_YAML = project_str + "ml/" + str(ml_settings.ml_compute_engine_id) + "/annotations.yaml"
+            yaml_blob = bucket.blob(INPUT_YAML)
 
-        gcs = storage.Client()
-        gcs = get_gcs_service_account(gcs)
-        bucket = gcs.get_bucket(settings.CLOUD_STORAGE_BUCKET)
-        blob = bucket.blob(project_str + "ml/" + str(ml_settings.ml_compute_engine_id) + "/tfrecords_0.record")
-        INPUT_YAML = project_str + "ml/" + str(ml_settings.ml_compute_engine_id) + "/annotations.yaml"
-        yaml_blob = bucket.blob(INPUT_YAML)
+            yaml_bytes = yaml_blob.download_as_string()
+            examples = yaml.load(yaml_bytes)
 
-        yaml_bytes = yaml_blob.download_as_string()
-        examples = yaml.load(yaml_bytes)
+            len_examples = len(examples)
+            print("Loaded ", len(examples), "examples", file=sys.stderr)
 
+            images_dir = project_str + "images/"
+            for i in range(len(examples)):
+                examples[i]['annotations'][0]['image']['image_id'] = images_dir + str(examples[i]['annotations'][0]['image']['image_id'])
 
-        len_examples = len(examples)
-        print("Loaded ", len(examples), "examples", file=sys.stderr)
+            counter = 0
+            all_examples = []
 
+            # Reassign db ids to be 1 2 3  etc for tensorflow
+            # TODO this is terrible surely better way to do this
+            Labels = []
+            labels = session.query(Label).filter_by(project_id=project.id)            
+            for i in labels:
+                if i.soft_delete != True:
+                    Labels.append(i)
+            Labels_unique = set(Labels)
+            Labels.sort(key= lambda x: x.id) 
+            label_dict = {}
+            start_at_1_label = 1
+            lowest_label = 0
+            for label in Labels:
+                if label.id > lowest_label:
+                    label_dict[label.id] = start_at_1_label
+                    start_at_1_label += 1
+                    lowest_label = label.id
 
-        images_dir = project_str + "images/"
-        for i in range(len(examples)):
-            examples[i]['annotations'][0]['image']['image_id'] = images_dir + str(examples[i]['annotations'][0]['image']['image_id'])
+            print("label_dict length", len(label_dict), file=sys.stderr)
 
-        counter = 0
-        all_examples = []
+            temp = tempfile.NamedTemporaryFile()
+            writer = tf.python_io.TFRecordWriter(str(temp.name))
 
-
-        # Reassign db ids to be 1 2 3  etc for tensorflow
-        # TODO this is terrible surely better way to do this
-        Labels = []
-        labels = session.query(Label).filter_by(project_id=project.id)            
-        for i in labels:
-            if i.soft_delete != True:
-                Labels.append(i)
-        Labels_unique = set(Labels)
-        Labels.sort(key= lambda x: x.id) 
-        label_dict = {}
-        start_at_1_label = 1
-        lowest_label = 0
-        for label in Labels:
-            if label.id > lowest_label:
-                label_dict[label.id] = start_at_1_label
-                start_at_1_label += 1
-                lowest_label = label.id
-
-        print("label_dict length", len(label_dict), file=sys.stderr)
-
-        temp = tempfile.NamedTemporaryFile()
-        writer = tf.python_io.TFRecordWriter(str(temp.name))
-
-        for example in examples:
+            for example in examples:
             
-            tf_example = create_tf_example(example['annotations'], label_dict)
-            writer.write(tf_example.SerializeToString())
+                tf_example = create_tf_example(example['annotations'], label_dict)
+                writer.write(tf_example.SerializeToString())
             
-            if counter % 2 == 0:
-                print("Percent done", (counter/len_examples)*100)
-            counter += 1
+                if counter % 2 == 0:
+                    print("Percent done", (counter/len_examples)*100)
+                counter += 1
 
-        writer.close()
+            writer.close()
 
-        blob.upload_from_file(temp, content_type='text/record')
-        temp.close()
+            blob.upload_from_file(temp, content_type='text/record')
+            temp.close()
+
+            link = get_secure_link(blob)
+            print(blob.name, file=sys.stderr)    
+            print("Built TF records", file=sys.stderr)
+            t.cancel()
 
 
-        link = get_secure_link(blob)
-
-        print(blob.name, file=sys.stderr)
-        
-        print("Built TF records", file=sys.stderr)
-        t.cancel()
+        with sessionMaker.session_scope() as session:
+            task_manager_scope(session)
 
 
     t = threading.Timer(0, task_manager)

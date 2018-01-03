@@ -1,7 +1,6 @@
 from database_setup import User, Project, Version, Image, Box, Label, Machine_learning_settings
 from flask import session as login_session
 from flask import request, redirect, url_for, flash
-from methods import userMethods
 from helpers import sessionMaker
 from methods.user import hashing_functions
 import sys, os
@@ -20,12 +19,6 @@ def LoggedIn():
     else:
         return False
 
-
-def defaultRedirect():
-    flash("Please login")
-    return redirect(url_for('routes.login'))
-
-
 def getUserID():
     out = hashing_functions.check_secure_val(login_session['user_id'])
     if out is not None:
@@ -33,11 +26,14 @@ def getUserID():
     else:
         return None
 
+def defaultRedirect():
+    flash("Please login")
+    return redirect(url_for('routes.login'))
+
 
 def setSecureCookie(user_db):
     cookie_hash = hashing_functions.make_secure_val(str(user_db.id))
     login_session['user_id'] = cookie_hash
-
 
 def get_current_version(session):
     user = session.query(User).filter_by(id=getUserID()).first()

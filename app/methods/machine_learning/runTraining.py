@@ -28,10 +28,12 @@ credentials = GoogleCredentials.get_application_default()
 ml = discovery.build('ml', 'v1', credentials=credentials)
 projectID = 'projects/{}'.format(settings.GOOGLE_PROJECT_NAME)
 
-session = sessionMaker.newSession()
+# TODO
+# With new more robust session handling need to implement 
+# new scopped session if hitting directly from HTTP request
 
 
-def training_pre_conditions():
+def training_pre_conditions(session):
     
     project = get_current_project(session)
     version = get_current_version(session)
@@ -51,11 +53,11 @@ def training_pre_conditions():
 
 
 @routes.route('/machine_learning/training/run', methods=['GET'])
-def runTraining():
+def runTraining(session):
     if LoggedIn() != True:
         return defaultRedirect()
 
-    have_error, params = training_pre_conditions()
+    have_error, params = training_pre_conditions(session)
     if have_error:
         print("have error", params, file=sys.stderr)
         return json.dumps(params), 200, {'ContentType':'application/json'}
@@ -113,7 +115,7 @@ def runTraining():
 
 
 @routes.route('/machine_learning/training/frozen/run', methods=['GET'])
-def trainingFrozenRun():
+def trainingFrozenRun(session):
 
     if LoggedIn() != True:
         return defaultRedirect()
@@ -170,7 +172,7 @@ def trainingFrozenRun():
 
 
 @routes.route('/machine_learning/training/new_model', methods=['GET'])
-def runNewModel():
+def runNewModel(session):
 
     if LoggedIn() != True:
         return defaultRedirect()
@@ -199,7 +201,7 @@ def runNewModel():
 
 
 @routes.route('/machine_learning/training/new_version', methods=['GET'])
-def runNewVersion():
+def runNewVersion(session):
 
     if LoggedIn() != True:
         return defaultRedirect()
@@ -262,111 +264,114 @@ def runTrainingPipeline(re_train=0):
         
     @copy_current_request_context
     def task_manager():
+        def task_manager_scope(session):
+            print("[Training task manager] Started. Retrain_flag:", re_train,  file=sys.stderr)
+            session = sessionMaker.scoppedSession() # Threadsafe
 
-        print("[Training task manager] Started. Retrain_flag:", re_train,  file=sys.stderr)
-        session = sessionMaker.scoppedSession() # Threadsafe
+            # Maybe better to have this somewhere else
+            version = get_current_version(session=session)
+            if version.machine_learning_settings_id is None:
+                ml_settings.machine_learning_settings_new(session=session)
 
-        # Maybe better to have this somewhere else
-        version = get_current_version(session=session)
-        if version.machine_learning_settings_id is None:
-            ml_settings.machine_learning_settings_new(session=session)
+            # Advance one for training if not retraining
+            if re_train == 0:
+                ml_settings.machine_learning_settings_edit(session=session, next_id=True)
 
-        # Advance one for training if not retraining
-        if re_train == 0:
-            ml_settings.machine_learning_settings_edit(session=session, next_id=True)
+            project = get_current_project(session=session)
 
-        project = get_current_project(session=session)
+            machine_learning_settings = get_ml_settings(session=session, version=version)
 
-        machine_learning_settings = get_ml_settings(session=session, version=version)
+            JOB_NAME = "__projectID_" + str(project.id) + "__versionID_" + str(version.id) + "__ml_compute_id_" + str(machine_learning_settings.ml_compute_engine_id)
 
-        JOB_NAME = "__projectID_" + str(project.id) + "__versionID_" + str(version.id) + "__ml_compute_id_" + str(machine_learning_settings.ml_compute_engine_id)
-
-        if re_train == 1:
-            machine_learning_settings.re_train_id += 1
-            JOB_NAME += "__retrainID_" + str(machine_learning_settings.re_train_id)
+            if re_train == 1:
+                machine_learning_settings.re_train_id += 1
+                JOB_NAME += "__retrainID_" + str(machine_learning_settings.re_train_id)
         
-        machine_learning_settings.JOB_NAME = JOB_NAME
-        session.add(machine_learning_settings)
-        session.commit()
+            machine_learning_settings.JOB_NAME = JOB_NAME
+            session.add(machine_learning_settings)
+            session.commit()
 
-        # Do YAML for retraining
-        # TODO way to detect if this is needed or not...
-        yamlNew(hold_thread=True)
+            # Do YAML for retraining
+            # TODO way to detect if this is needed or not...
+            yamlNew(hold_thread=True)
 
-        labelMapNew()
-        fasterRcnnResnetNew(re_train=re_train)  # Config file
+            labelMapNew()
+            fasterRcnnResnetNew(re_train=re_train)  # Config file
 
-        tfrecordsNew(hold_thread=True)
+            tfrecordsNew(hold_thread=True)
 
-        ### TRAINING
-        runTraining()
+            ### TRAINING
+            runTraining(session)
             
-        config = {}
-        config['PUBSSUB_TOPIC'] = settings.PUB_SUB_TOPIC
-        config['PROJECT'] = settings.GOOGLE_PROJECT_NAME
-        publisher = pubsub_v1.PublisherClient()
-        topic_path = publisher.topic_path(config['PROJECT'], config['PUBSSUB_TOPIC'])
-        JOB_NAME = "train_" + machine_learning_settings.JOB_NAME
-        JOB_NAME_FORMATTED = projectID + "/jobs/" + JOB_NAME
+            config = {}
+            config['PUBSSUB_TOPIC'] = settings.PUB_SUB_TOPIC
+            config['PROJECT'] = settings.GOOGLE_PROJECT_NAME
+            publisher = pubsub_v1.PublisherClient()
+            topic_path = publisher.topic_path(config['PROJECT'], config['PUBSSUB_TOPIC'])
+            JOB_NAME = "train_" + machine_learning_settings.JOB_NAME
+            JOB_NAME_FORMATTED = projectID + "/jobs/" + JOB_NAME
 
-        training_flag = True
-        while training_flag is True:
+            training_flag = True
+            while training_flag is True:
                 
-            request = ml.projects().jobs().get(name=JOB_NAME_FORMATTED)
-            # TODO error handling
-            response = request.execute()
+                request = ml.projects().jobs().get(name=JOB_NAME_FORMATTED)
+                # TODO error handling
+                response = request.execute()
                 
-            data = json.dumps(response)
-            print(data, file=sys.stderr)
-            data = data.encode()
-            publisher.publish(topic_path, data=data)
+                data = json.dumps(response)
+                print(data, file=sys.stderr)
+                data = data.encode()
+                publisher.publish(topic_path, data=data)
 
-            a = response['state']
-            if a == "SUCCEEDED" or a == "FAILED" or a =="CANCELLED":
-                training_flag = False
-            else:
-                time.sleep(30)
+                a = response['state']
+                if a == "SUCCEEDED" or a == "FAILED" or a =="CANCELLED":
+                    training_flag = False
+                else:
+                    time.sleep(30)
             
-        #### END TRAINING
+            #### END TRAINING
 
-        # Now need to run new model on re training
-        if re_train == 0:
-            runNewModel()
+            # Now need to run new model on re training
+            if re_train == 0:
+                runNewModel(session)
 
-        ##### FROZEN
-        trainingFrozenRun()
+            ##### FROZEN
+            trainingFrozenRun(session)
 
-        JOB_NAME = "frozen_user_" + machine_learning_settings.JOB_NAME
-        JOB_NAME_FORMATTED = projectID + "/jobs/" + JOB_NAME
+            JOB_NAME = "frozen_user_" + machine_learning_settings.JOB_NAME
+            JOB_NAME_FORMATTED = projectID + "/jobs/" + JOB_NAME
 
-        frozen_flag = True
-        while frozen_flag is True:
+            frozen_flag = True
+            while frozen_flag is True:
                 
-            request = ml.projects().jobs().get(name=JOB_NAME_FORMATTED)
+                request = ml.projects().jobs().get(name=JOB_NAME_FORMATTED)
 
-            # TODO error handling
-            response = request.execute()
+                # TODO error handling
+                response = request.execute()
 
-            data = json.dumps(response)
-            print(data, file=sys.stderr)
-            data = data.encode()
+                data = json.dumps(response)
+                print(data, file=sys.stderr)
+                data = data.encode()
 
-            publisher.publish(topic_path, data=data)
+                publisher.publish(topic_path, data=data)
 
-            a = response['state']
-            if a == "SUCCEEDED" or a == "FAILED" or a =="CANCELLED":
-                frozen_flag = False
-            else:
-                time.sleep(30)
+                a = response['state']
+                if a == "SUCCEEDED" or a == "FAILED" or a =="CANCELLED":
+                    frozen_flag = False
+                else:
+                    time.sleep(30)
 
             
-        #####
-        runNewVersion()
-        time.sleep(60*8)  # Sleep while long running operation
-        runInferenceSingle()
+            #####
+            runNewVersion(session)
+            time.sleep(60*8)  # Sleep while long running operation
+            runInferenceSingle()
 
-        t.cancel()
-        print("[Training task manager] SUCCESS", file=sys.stderr)
+            print("[Training task manager] SUCCESS", file=sys.stderr)
+            t.cancel()
+
+        with sessionMaker.session_scope() as session:
+            task_manager_scope(session)
 
 
     t = threading.Timer(0, task_manager)

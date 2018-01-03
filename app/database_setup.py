@@ -100,8 +100,8 @@ class Image(Base):
     original_filename = Column(String(250))
     width = Column(Integer)
     height = Column(Integer)
-    soft_delete = Column(Boolean)
-    is_test_image = Column(Boolean)
+    soft_delete = Column(Boolean, default=False)
+    is_test_image = Column(Boolean, default=False)
 
     url_signed = Column(String())
     url_signed_thumb = Column(String())

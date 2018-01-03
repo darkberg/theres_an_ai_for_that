@@ -16,6 +16,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 from database_setup import Base
 import os
+from contextlib import contextmanager
 
 from settings import settings
 
@@ -37,3 +38,33 @@ def scoppedSession():
     Session = scoped_session(DBSession)
 
     return Session
+
+@contextmanager
+def session_scope():
+    """Provide a transactional scope around a series of operations."""
+    session = newSession()
+    try:
+        yield session
+        session.commit()
+    except:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
+
+@contextmanager
+def session_scope_threaded(Thread_session):
+    """Provide a transactional scope around a series of operations.
+    This is for factory method threaded sessions where the
+    factory is passed as an argument
+    """
+    session = Thread_session()
+    try:
+        yield session
+        session.commit()
+    except:
+        session.rollback()
+        raise
+    finally:
+        session.close()
