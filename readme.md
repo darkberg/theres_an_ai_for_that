@@ -11,8 +11,8 @@
 
 * Rapid prototyping
 * Collaboration on new dataset creation
-* Rough starting point for someone looking to build a service like [clarifai](https://clarifai.com/developer/)
-
+* Rough starting point for someone looking to build a service like [microsoft vision service](https://azure.microsoft.com/en-us/services/cognitive-services/custom-vision-service/) or [clarifai](https://clarifai.com/developer/)
+	* This does object detection where as at time of writing microsoft's only does classification
 
 ### What does this use?
 
@@ -129,13 +129,13 @@ an app engine service account to come up**
 ### Contributions welcome, for example:
 * Polygon capture and ground truth creation for semantic segmentation
 * Add other object detection configurations
-* More functions around projects and adding users to the same project
+* More functions around adding users to the same project & permissions
 * Better error handling
 * Test cases and test coverage
-* UI work (vue js)
-* Display status of training from pub/sub
+* UI work (vue js), ie display status of training from pub/sub
 * More training options, ability to tune hyper parameters from UI
-
+* Integration with annotation services such as Amazon Mechanical Turk & scale API
+* Improved label options, ie choose which labels get used in specific training version
 
 
 
