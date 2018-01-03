@@ -192,7 +192,7 @@ def uploadPOST():
         t.daemon = True
         t.start()
 
-        out = {"files": [{"name": "Success"}]}
+        out = {"files": [{"name": "Processing files. Please wait a few seconds per file uploaded"}]}
     else:
         out = {"files": [{"name": "Invalid file extension"}]}
 

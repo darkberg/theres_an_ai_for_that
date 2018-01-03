@@ -125,7 +125,6 @@ an app engine service account to come up**
 	* Run images to video if you wish
 
 
-
 ### Contributions welcome, for example:
 * Polygon capture and ground truth creation for semantic segmentation
 * Add other object detection configurations
@@ -137,6 +136,26 @@ an app engine service account to come up**
 * Integration with annotation services such as Amazon Mechanical Turk & scale API
 * Improved label options, ie choose which labels get used in specific training version
 
+
+### A few known issues and notes
+## Upload speed and connections
+Despite calling session.close() the session will sometimes not close fully. 
+I don't know why so if anyone does please tell me.
+
+There is a max connection limit set by google of 20 (for their lowest level psql db).
+This will mean sometimes you will hit a max connection limit, especially with more users.
+Upgrading to at least 1 full vCPU (instead of 1 shared) seems to help with this.
+
+Related to this, for uploading, there are a max number of threads, set in settings.py,
+each thread spawns a new connection. The logs have updates on zip processor status and/or adjust
+number of threads / timeout in the settings page.
+
+
+## Most status updates are published to standard error, the UI needs work.
+
+## Adding users to projects
+The fastest way is to add a code at signup. ie if project "roses" than assign to project id == 15
+Clearly this is an area that could use some more work.
 
 
 
